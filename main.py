@@ -2,9 +2,25 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 import time
 
+def CheckCurrentColor():
+    # Find the element by XPath
+    xpath = "//*[@id='canvselect']/img"
+    element = driver.find_element(By.XPATH, xpath)
 
+     # Take a screenshot of the element
+    screenshot_path = "screenshot.png"
+    element.screenshot(screenshot_path)
+
+    # Open the screenshot image
+    image = Image.open(screenshot_path)
+
+    # Get the color at the top left corner, but 5 pixels lower and 5 pixels to the right
+    color = image.getpixel((5, 5))
+
+    return color
 
 def get_character(pixel, color_mapping=None):
 
@@ -98,40 +114,54 @@ for _ in range(y_steps):
 actions.perform()
 
 time.sleep(5)
+while True:
+    # Loop through each pixel of the image
+    for y_coord in range(image.size[1]):
+        for x_coord in range(image.size[0]):
+            # Get the color of the pixel
+            pixel_color = image.getpixel((x_coord, y_coord))
+            
+            print(pixel_color)
+            # Get the character corresponding to the closest color
+            character = get_character(pixel_color)
+            print(f'pixel to place: ${character}')
+            CurrentPixelCharacter = get_character(CheckCurrentColor())
+            print(f'pixel present: ${CurrentPixelCharacter}')
+            if CurrentPixelCharacter != character:
 
-# Loop through each pixel of the image
-for y_coord in range(image.size[1]):
-    for x_coord in range(image.size[0]):
-        # Get the color of the pixel
-        pixel_color = image.getpixel((x_coord, y_coord))
+                # Press the corresponding key
+                actions.send_keys(character)
+                actions.send_keys(Keys.ENTER)
+                actions.send_keys(Keys.ARROW_RIGHT)
+                actions.perform()
+                time.sleep(2)  # Add delay of 2 seconds between each pixel placement
+            else:
+                actions.send_keys(Keys.ARROW_RIGHT)
+                actions.perform()
+                time.sleep(0.1)
+            
         
-        print(pixel_color)
-        # Get the character corresponding to the closest color
-        character = get_character(pixel_color)
-        print(character)
-        # Press the corresponding key
-        actions.send_keys(character)
-        actions.send_keys(Keys.ENTER)
-        actions.send_keys(Keys.ARROW_RIGHT)
-        actions.perform()
-        time.sleep(2)  # Add delay of 2 seconds between each pixel placement
-    
-    # Move to the next row
-    if y_coord < image.size[1] - 1:  # Don't move down after the last row
-        actions.send_keys(Keys.ARROW_DOWN)
-        print("down")
-        actions.perform()
-        # After completing the rows, move back to the starting position
-        for _ in range(image.size[0]):
-            actions.send_keys(Keys.ARROW_LEFT)
-        print("left")
-        
-        actions.perform()
-        time.sleep(1)
+        # Move to the next row
+        if y_coord < image.size[1] - 1:  # Don't move down after the last row
+            actions.send_keys(Keys.ARROW_DOWN)
+            print("down")
+            actions.perform()
+            # After completing the rows, move back to the starting position
+            for _ in range(image.size[0]):
+                actions.send_keys(Keys.ARROW_LEFT)
+            print("left")
+            
+            actions.perform()
+            time.sleep(0.1)
 
 
-print("finished")
-
+    print("finished restarting")
+    actions.send_keys(Keys.ARROW_DOWN)
+    for _ in range(image.size[0]):
+        actions.send_keys(Keys.ARROW_LEFT)
+    for y_coord in range(image.size[1]):
+        actions.send_keys(Keys.ARROW_UP)
+    actions.perform()
 
 time.sleep(5)
 driver.quit()
